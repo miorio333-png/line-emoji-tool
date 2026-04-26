@@ -84,9 +84,10 @@ header p  { font-size: 0.85rem; opacity: 0.9; }
 .tol-row span  { font-size: 0.85rem; color: #333; width: 26px; text-align: right; }
 
 .mask-info {
-  display: none; font-size: 0.78rem; color: #555;
+  display: block; font-size: 0.78rem; color: #999;
   padding: 5px 10px; margin-top: 6px;
   background: #fffbe6; border: 1px solid #ffe082; border-radius: 6px;
+  min-height: 28px; /* 常に高さを確保してズレを防ぐ */
 }
 
 .sheet-label { font-size: 0.9rem; font-weight: bold; color: #444; margin-bottom: 8px; }
@@ -577,6 +578,9 @@ function loadSheetImgFile(file, ab) {
       const ov = document.getElementById(ab === 'A' ? 'ov0a' : 'ov0b');
       ov.width = 0;
 
+      // マスク情報欄を初期化（常に表示してズレを防ぐ）
+      updateMaskInfo(ab);
+
       // ブラシイベント登録（1回だけ）
       if (!cv.dataset.brushInit) { initBrushEvents(cvId, ab); cv.dataset.brushInit = '1'; }
 
@@ -650,7 +654,7 @@ function clearMask(ab) {
   s.eraseMask = new Uint8Array(n);
   applyBG(ab);
   drawMaskOverlay(ab);
-  document.getElementById(ab === 'A' ? 'mask-info-a' : 'mask-info-b').style.display = 'none';
+  updateMaskInfo(ab); // リセット後も初期テキストを表示（非表示にしない）
 }
 
 // STEP 2 のシートに画像を反映
@@ -736,13 +740,15 @@ function drawMaskOverlay(ab) {
 }
 
 function updateMaskInfo(ab) {
-  const s   = state[ab];
-  const el  = document.getElementById(ab === 'A' ? 'mask-info-a' : 'mask-info-b');
-  const pc  = s.protMask  ? s.protMask.reduce( (a,v)=>a+v,0) : 0;
-  const ec  = s.eraseMask ? s.eraseMask.reduce((a,v)=>a+v,0) : 0;
-  if (pc === 0 && ec === 0) { el.style.display='none'; return; }
-  el.style.display = 'block';
-  el.textContent   = `🟢 保護: ${pc.toLocaleString()}px　🔴 消去: ${ec.toLocaleString()}px　→「🔄 再適用」を押すとSTEP 2に反映されます`;
+  const s  = state[ab];
+  const el = document.getElementById(ab === 'A' ? 'mask-info-a' : 'mask-info-b');
+  const pc = s.protMask  ? s.protMask.reduce( (a,v)=>a+v,0) : 0;
+  const ec = s.eraseMask ? s.eraseMask.reduce((a,v)=>a+v,0) : 0;
+  // 常に表示（高さを固定してズレを防ぐ）
+  el.style.color = (pc === 0 && ec === 0) ? '#bbb' : '#555';
+  el.textContent = (pc === 0 && ec === 0)
+    ? '🟢 保護: 0px　🔴 消去: 0px　（ブラシで塗ると表示が変わります）'
+    : `🟢 保護: ${pc.toLocaleString()}px　🔴 消去: ${ec.toLocaleString()}px　→「🔄 再適用」を押すとSTEP 2に反映されます`;
 }
 
 // ======================================================
