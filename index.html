@@ -191,9 +191,11 @@ input[type="number"] {
       <!-- 透過の強さ -->
       <div class="tol-row">
         <label>透過の強さ：</label>
-        <input type="range" id="tol-a" min="0" max="100" value="30"
-          oninput="document.getElementById('tol-a-v').textContent=this.value; applyBG('A');">
-        <span id="tol-a-v">30</span>
+        <input type="range" id="tol-a" min="0" max="100" value="30" step="1"
+          oninput="document.getElementById('tol-a-num').value=this.value; applyBG('A');">
+        <input type="number" id="tol-a-num" min="0" max="100" value="30" step="1"
+          style="width:54px;padding:3px 5px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;text-align:center;"
+          oninput="this.value=Math.min(100,Math.max(0,this.value||0)); document.getElementById('tol-a').value=this.value; applyBG('A');">
       </div>
 
       <!-- 保護ブラシ -->
@@ -261,9 +263,11 @@ input[type="number"] {
 
       <div class="tol-row">
         <label>透過の強さ：</label>
-        <input type="range" id="tol-b" min="0" max="100" value="30"
-          oninput="document.getElementById('tol-b-v').textContent=this.value; applyBG('B');">
-        <span id="tol-b-v">30</span>
+        <input type="range" id="tol-b" min="0" max="100" value="30" step="1"
+          oninput="document.getElementById('tol-b-num').value=this.value; applyBG('B');">
+        <input type="number" id="tol-b-num" min="0" max="100" value="30" step="1"
+          style="width:54px;padding:3px 5px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;text-align:center;"
+          oninput="this.value=Math.min(100,Math.max(0,this.value||0)); document.getElementById('tol-b').value=this.value; applyBG('B');">
       </div>
 
       <div class="brush-panel">
