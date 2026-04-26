@@ -260,7 +260,7 @@ input[type="number"] {
       <div class="controls">
         <div class="control-group">
           <label>透過の強さ：</label>
-          <input type="range" id="tol" min="0" max="100" value="30" oninput="document.getElementById('tol-v').textContent=this.value">
+          <input type="range" id="tol" min="0" max="100" value="30" oninput="document.getElementById('tol-v').textContent=this.value; if(origData) applyBG();">
           <span id="tol-v">30</span>
         </div>
         <button class="btn btn-green" onclick="reapplyAndUpdate()">🔄 調整を再適用</button>
@@ -582,7 +582,7 @@ function loadImageFile0(file) {
       initBrushEvents();
 
       applyBG();
-      commitToSheet(currentAB);
+      commitToSheet(currentAB, false); // エディタは開いたまま（調整できるように）
 
       if (currentAB === 'A') {
         document.getElementById('drop0-msg').innerHTML = `
