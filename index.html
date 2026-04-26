@@ -282,8 +282,8 @@ input[type="number"] {
         <button class="btn btn-gray" onclick="clearMasks()">マスクをリセット</button>
       </div>
 
-      <div class="canvas-wrap" style="margin-top:12px;">
-        <canvas id="canvas0"></canvas>
+      <div style="margin-top:12px;border:1px solid #eee;border-radius:8px;background:#bbb url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22%23999%22/%3E%3Crect x=%2210%22 y=%2210%22 width=%2210%22 height=%2210%22 fill=%22%23999%22/%3E%3C/svg%3E');">
+        <canvas id="canvas0" style="display:block;width:100%;border-radius:8px;"></canvas>
       </div>
     </div>
 
@@ -577,6 +577,7 @@ function loadImageFile0(file) {
       const label = currentAB === 'A' ? 'シートA（1枚目）' : 'シートB（2枚目）';
 
       document.getElementById('editor0').style.display = 'block';
+      fitCanvasHeight(cv); // シートA・Bと同じ幅いっぱい表示
       document.getElementById('auto-set-msg').textContent =
         `✅ ${file.name} を読み込みました → 背景を自動透過して${label}にセットしました`;
       initBrushEvents();
