@@ -221,7 +221,7 @@ input[type="number"] {
 
       <!-- ボタン群 -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-        <button class="btn btn-green" onclick="applyBG('A'); commitSheet('A');">🔄 再適用してSTEP1のシートに反映</button>
+        <button class="btn btn-green" onclick="reapplyAndCommit('A')">🔄 再適用してSTEP2のシートに反映</button>
         <button class="btn btn-gray"  onclick="resetImg('A')">元画像に戻す</button>
         <button class="btn btn-gray"  onclick="clearMask('A')">🗑️ ブラシをリセット</button>
       </div>
@@ -291,7 +291,7 @@ input[type="number"] {
       </div>
 
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-        <button class="btn btn-green" onclick="applyBG('B'); commitSheet('B');">🔄 再適用してSTEP2のシートに反映</button>
+        <button class="btn btn-green" onclick="reapplyAndCommit('B')">🔄 再適用してSTEP2のシートに反映</button>
         <button class="btn btn-gray"  onclick="resetImg('B')">元画像に戻す</button>
         <button class="btn btn-gray"  onclick="clearMask('B')">🗑️ ブラシをリセット</button>
       </div>
@@ -382,6 +382,10 @@ input[type="number"] {
         <input type="checkbox" id="a-auto-bg" checked style="width:16px;height:16px;accent-color:#06c755;">
         <span>✅ 分割後に各セルの<strong>白背景を自動で透過</strong>する</span>
       </label>
+      <div id="auto-bg-note-a" style="display:none;margin-top:6px;font-size:0.8rem;padding:6px 10px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;">
+        ⚠️ STEP 0 で保護ブラシを使ったため、自動透過を <strong>OFF</strong> にしました。<br>
+        チェックを入れたままだと保護が無視されます。
+      </div>
       <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
         <span style="font-size:0.82rem;color:#555;">透過の強さ：</span>
         <input type="range" id="a-cell-tol" min="0" max="80" value="30" style="flex:1;accent-color:#06c755;" oninput="document.getElementById('a-v-cell-tol').textContent=this.value">
@@ -431,6 +435,10 @@ input[type="number"] {
         <input type="checkbox" id="b-auto-bg" checked style="width:16px;height:16px;accent-color:#06c755;">
         <span>✅ 分割後に各セルの<strong>白背景を自動で透過</strong>する</span>
       </label>
+      <div id="auto-bg-note-b" style="display:none;margin-top:6px;font-size:0.8rem;padding:6px 10px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;">
+        ⚠️ STEP 1 で保護ブラシを使ったため、自動透過を <strong>OFF</strong> にしました。<br>
+        チェックを入れたままだと保護が無視されます。
+      </div>
       <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
         <span style="font-size:0.82rem;color:#555;">透過の強さ：</span>
         <input type="range" id="b-cell-tol" min="0" max="80" value="30" style="flex:1;accent-color:#06c755;" oninput="document.getElementById('b-v-cell-tol').textContent=this.value">
@@ -528,8 +536,7 @@ function isWhitePx(d, i, tol) {
   return d[i*4] >= 255-tol && d[i*4+1] >= 255-tol && d[i*4+2] >= 255-tol;
 }
 function fitH(cv) {
-  const w = (cv.parentElement || document.body).clientWidth || 600;
-  cv.style.height = Math.round(cv.height * w / cv.width) + 'px';
+  cv.style.height = 'auto';
 }
 function setupDrop(id, cb) {
   const el = document.getElementById(id);
@@ -661,6 +668,29 @@ function clearMask(ab) {
   updateMaskInfo(ab); // リセット後も初期テキストを表示（非表示にしない）
 }
 
+// 再適用ボタン用：透過処理→コミット→分割時の自動透過をOFF
+function reapplyAndCommit(ab) {
+  applyBG(ab);
+  commitSheet(ab);
+  // STEP 0/1 で手動保護した場合は分割時の自動透過をOFFにする（保護が上書きされるのを防ぐ）
+  const s = state[ab];
+  const hasProtect = s.protMask && s.protMask.some(v => v > 0);
+  if (hasProtect) {
+    const chkId = ab === 'A' ? 'a-auto-bg' : 'b-auto-bg';
+    const chk = document.getElementById(chkId);
+    if (chk && chk.checked) {
+      chk.checked = false;
+      // ユーザーへのフィードバック
+      const noteId = ab === 'A' ? 'auto-bg-note-a' : 'auto-bg-note-b';
+      const note = document.getElementById(noteId);
+      if (note) {
+        note.style.display = 'block';
+        note.style.color = '#e65100';
+      }
+    }
+  }
+}
+
 // STEP 2 のシートに画像を反映
 function commitSheet(ab) {
   const cvSrc = document.getElementById(ab === 'A' ? 'cv0a' : 'cv0b');
@@ -731,7 +761,7 @@ function drawMaskOverlay(ab) {
   const cv   = document.getElementById(cvId);
   const ov   = document.getElementById(ovId);
   ov.width   = cv.width; ov.height = cv.height;
-  ov.style.height = cv.style.height;
+  ov.style.height = '';
   const ctx  = ov.getContext('2d');
   const id   = ctx.createImageData(ov.width, ov.height);
   const d    = id.data;
