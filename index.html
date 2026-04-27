@@ -238,7 +238,7 @@ input[type="number"] {
   </div>
   <div class="nav-buttons">
     <span></span>
-    <button class="btn btn-green" onclick="goStep(1)">STEP 1へ（シートB）→</button>
+    <button class="btn btn-green" onclick="reapplyAndCommit('A'); goStep(1);">STEP 1へ（シートB）→</button>
   </div>
 </div>
 
@@ -306,7 +306,7 @@ input[type="number"] {
   </div>
   <div class="nav-buttons">
     <button class="btn btn-gray" onclick="goStep(0)">← STEP 0（シートA）</button>
-    <button class="btn btn-green" onclick="goStep(2)">STEP 2へ（読込確認）→</button>
+    <button class="btn btn-green" onclick="reapplyAndCommit('B'); goStep(2);">STEP 2へ（読込確認）→</button>
   </div>
 </div>
 
