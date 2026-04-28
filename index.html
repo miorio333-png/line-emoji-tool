@@ -389,6 +389,13 @@ input[type="number"] {
         <input type="range" id="a-cell-tol" min="0" max="80" value="30" style="flex:1;accent-color:#06c755;" oninput="document.getElementById('a-v-cell-tol').textContent=this.value">
         <span id="a-v-cell-tol" style="font-size:0.82rem;color:#333;width:24px;text-align:right;">30</span>
       </div>
+      <label style="font-size:0.88rem;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <input type="checkbox" id="a-auto-fit" checked style="width:16px;height:16px;accent-color:#06c755;">
+        <span>🔍 余白を自動で詰めて<strong>イラストを最大化</strong>する（推奨）</span>
+      </label>
+      <div style="font-size:0.78rem;color:#888;margin-top:4px;">
+        透明ピクセルを除いた実体部分を検出し、180×180pxいっぱいに拡大します（安全余白3px）
+      </div>
     </div>
     <div style="margin-top:10px;">
       <button class="btn btn-green" id="split-a-btn" onclick="splitSheet('A')">✂️ シートAを分割する</button>
@@ -441,6 +448,13 @@ input[type="number"] {
         <span style="font-size:0.82rem;color:#555;">透過の強さ：</span>
         <input type="range" id="b-cell-tol" min="0" max="80" value="30" style="flex:1;accent-color:#06c755;" oninput="document.getElementById('b-v-cell-tol').textContent=this.value">
         <span id="b-v-cell-tol" style="font-size:0.82rem;color:#333;width:24px;text-align:right;">30</span>
+      </div>
+      <label style="font-size:0.88rem;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <input type="checkbox" id="b-auto-fit" checked style="width:16px;height:16px;accent-color:#06c755;">
+        <span>🔍 余白を自動で詰めて<strong>イラストを最大化</strong>する（推奨）</span>
+      </label>
+      <div style="font-size:0.78rem;color:#888;margin-top:4px;">
+        透明ピクセルを除いた実体部分を検出し、180×180pxいっぱいに拡大します（安全余白3px）
       </div>
     </div>
     <div style="margin-top:10px;">
@@ -875,9 +889,10 @@ function splitSheet(ab) {
   const btn   = document.getElementById(btnId);
   btn.disabled = true; btn.textContent = '⏳ 分割中...';
   setTimeout(() => {
-    const p      = getGridParams(ab);
-    const autoBG = document.getElementById(ab==='A'?'a-auto-bg':'b-auto-bg').checked;
-    const tol    = parseInt(document.getElementById(ab==='A'?'a-cell-tol':'b-cell-tol').value)||30;
+    const p        = getGridParams(ab);
+    const autoBG   = document.getElementById(ab==='A'?'a-auto-bg':'b-auto-bg').checked;
+    const autoFit  = document.getElementById(ab==='A'?'a-auto-fit':'b-auto-fit').checked;
+    const tol      = parseInt(document.getElementById(ab==='A'?'a-cell-tol':'b-cell-tol').value)||30;
     const cw = (src.width  - p.mgL - p.mgR - p.gapH*(p.cols-1)) / p.cols;
     const ch = (src.height - p.mgT - p.mgB - p.gapV*(p.rows-1)) / p.rows;
     const result = [];
@@ -894,6 +909,7 @@ function splitSheet(ab) {
         else{dh=180;dw=Math.round(180*asp);dy=0;dx=Math.round((180-dw)/2);}
         ctx.drawImage(src,sx,sy,cw,ch,dx,dy,dw,dh);
         if (autoBG) removeCellBG(ctx,180,180,tol);
+        if (autoFit) autoFitContent(ctx,180,180,3);
         result.push(out);
       }
     }
@@ -905,6 +921,42 @@ function splitSheet(ab) {
     document.getElementById(ab==='A'?'a-done-badge':'b-done-badge').style.display='flex';
     goStep(ab==='A' ? 4 : 5);
   }, 30);
+}
+
+// 透明でないピクセルの範囲を検出し、余白を詰めて最大化する
+function autoFitContent(ctx, w, h, margin) {
+  margin = margin || 3;
+  const id = ctx.getImageData(0, 0, w, h);
+  const d  = id.data;
+  let minX = w, maxX = -1, minY = h, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  // イラストが存在しない場合は何もしない
+  if (maxX < 0) return;
+  const contentW = maxX - minX + 1;
+  const contentH = maxY - minY + 1;
+  // 余白を除いた有効領域に収まるスケールを計算（アスペクト比維持）
+  const available = w - margin * 2;
+  const scale = Math.min(available / contentW, available / contentH);
+  const dw = Math.round(contentW * scale);
+  const dh = Math.round(contentH * scale);
+  const dx = Math.round((w - dw) / 2);
+  const dy = Math.round((h - dh) / 2);
+  // クロップした部分を一時キャンバスに転写
+  const tmp = document.createElement('canvas');
+  tmp.width = contentW; tmp.height = contentH;
+  tmp.getContext('2d').putImageData(id, -minX, -minY);
+  // 元キャンバスをクリアして拡大描画
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(tmp, 0, 0, contentW, contentH, dx, dy, dw, dh);
 }
 
 function removeCellBG(ctx, w, h, tol) {
