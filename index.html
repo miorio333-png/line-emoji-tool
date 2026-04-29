@@ -221,6 +221,8 @@ input[type="number"] {
 
       <!-- ボタン群 -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <button id="a-undo-btn" class="btn btn-gray" onclick="undo('A')" disabled>↩ 戻る</button>
+        <button id="a-redo-btn" class="btn btn-gray" onclick="redo('A')" disabled>↪ 進む</button>
         <button class="btn btn-gray"  onclick="resetImg('A')">元画像に戻す</button>
         <button class="btn btn-gray"  onclick="clearMask('A')">🗑️ ブラシをリセット</button>
       </div>
@@ -290,6 +292,8 @@ input[type="number"] {
       </div>
 
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <button id="b-undo-btn" class="btn btn-gray" onclick="undo('B')" disabled>↩ 戻る</button>
+        <button id="b-redo-btn" class="btn btn-gray" onclick="redo('B')" disabled>↪ 進む</button>
         <button class="btn btn-gray"  onclick="resetImg('B')">元画像に戻す</button>
         <button class="btn btn-gray"  onclick="clearMask('B')">🗑️ ブラシをリセット</button>
       </div>
@@ -520,6 +524,10 @@ const state = {
   A: { origData: null, protMask: null, eraseMask: null, brush: 'none', painting: false },
   B: { origData: null, protMask: null, eraseMask: null, brush: 'none', painting: false },
 };
+// ---- ブラシ履歴（元に戻す・やり直す） ----
+const maskHistory = { A: [], B: [] };
+const maskHistIdx = { A: -1, B: -1 };
+const MAX_HIST = 15;
 let sheetCvsA = null;
 let sheetCvsB = null;
 let cellsA    = [];
@@ -604,6 +612,10 @@ function loadSheetImgFile(file, ab) {
       // マスク情報欄を初期化（常に表示してズレを防ぐ）
       updateMaskInfo(ab);
 
+      // 履歴リセット＆初期状態を保存
+      maskHistory[ab] = []; maskHistIdx[ab] = -1;
+      saveHistory(ab);
+
       // ブラシイベント登録（1回だけ）
       if (!cv.dataset.brushInit) { initBrushEvents(cvId, ab); cv.dataset.brushInit = '1'; }
 
@@ -677,7 +689,8 @@ function clearMask(ab) {
   s.eraseMask = new Uint8Array(n);
   applyBG(ab);
   drawMaskOverlay(ab);
-  updateMaskInfo(ab); // リセット後も初期テキストを表示（非表示にしない）
+  updateMaskInfo(ab);
+  saveHistory(ab);
 }
 
 // 再適用ボタン用：透過処理→コミット→分割時の自動透過をOFF
@@ -717,6 +730,44 @@ function commitSheet(ab) {
   document.getElementById(msgId).innerHTML =
     `<div style="color:#06c755;font-size:0.82rem;">✅ シート${ab} セット済み（STEP ${ab==='A'?0:1}より自動反映）</div>`;
   updateSheetStatus();
+}
+
+// ---- ブラシ履歴管理 ----
+function saveHistory(ab) {
+  const s = state[ab];
+  if (!s.protMask) return;
+  const h = maskHistory[ab];
+  // やり直し分を削除
+  h.splice(maskHistIdx[ab] + 1);
+  h.push({ protMask: s.protMask.slice(), eraseMask: s.eraseMask.slice() });
+  if (h.length > MAX_HIST) h.shift();
+  maskHistIdx[ab] = h.length - 1;
+  updateHistoryBtns(ab);
+}
+function undo(ab) {
+  const h = maskHistory[ab]; const i = maskHistIdx[ab];
+  if (i <= 0) return;
+  maskHistIdx[ab] = i - 1;
+  restoreHistory(ab);
+}
+function redo(ab) {
+  const h = maskHistory[ab]; const i = maskHistIdx[ab];
+  if (i >= h.length - 1) return;
+  maskHistIdx[ab] = i + 1;
+  restoreHistory(ab);
+}
+function restoreHistory(ab) {
+  const snap = maskHistory[ab][maskHistIdx[ab]];
+  const s = state[ab];
+  s.protMask  = snap.protMask.slice();
+  s.eraseMask = snap.eraseMask.slice();
+  applyBG(ab); drawMaskOverlay(ab); updateMaskInfo(ab); updateHistoryBtns(ab);
+}
+function updateHistoryBtns(ab) {
+  const pfx = ab === 'A' ? 'a' : 'b';
+  const i = maskHistIdx[ab]; const len = maskHistory[ab].length;
+  document.getElementById(`${pfx}-undo-btn`).disabled = i <= 0;
+  document.getElementById(`${pfx}-redo-btn`).disabled = i >= len - 1;
 }
 
 // ---- 保護ブラシ ----
@@ -759,11 +810,11 @@ function initBrushEvents(cvId, ab) {
   };
   cv.addEventListener('mousedown',  e => { s.painting=true; paint(e); });
   cv.addEventListener('mousemove',  e => { if(s.painting) paint(e); });
-  cv.addEventListener('mouseup',    () => s.painting=false);
-  cv.addEventListener('mouseleave', () => s.painting=false);
+  cv.addEventListener('mouseup',    () => { if(s.painting){ s.painting=false; saveHistory(ab); } });
+  cv.addEventListener('mouseleave', () => { if(s.painting){ s.painting=false; saveHistory(ab); } });
   cv.addEventListener('touchstart', e => { e.preventDefault(); s.painting=true; paint(e.touches[0]); }, {passive:false});
   cv.addEventListener('touchmove',  e => { e.preventDefault(); if(s.painting) paint(e.touches[0]); }, {passive:false});
-  cv.addEventListener('touchend',   () => s.painting=false);
+  cv.addEventListener('touchend',   () => { if(s.painting){ s.painting=false; saveHistory(ab); } });
 }
 
 function drawMaskOverlay(ab) {
