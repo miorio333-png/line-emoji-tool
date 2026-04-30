@@ -888,7 +888,7 @@ function splitSheet(ab) {
   const btnId = ab === 'A' ? 'split-a-btn' : 'split-b-btn';
   const btn   = document.getElementById(btnId);
   btn.disabled = true; btn.textContent = '⏳ 分割中...';
-  setTimeout(() => {
+  setTimeout(() => { try {
     const p        = getGridParams(ab);
     const autoFit  = document.getElementById(ab==='A'?'a-auto-fit':'b-auto-fit').checked;
     const cw = (src.width  - p.mgL - p.mgR - p.gapH*(p.cols-1)) / p.cols;
@@ -916,7 +916,7 @@ function splitSheet(ab) {
     btn.textContent = ab==='A' ? '✂️ シートAを分割してSTEP4へ →' : '✂️ シートBを分割してSTEP5へ →';
     document.getElementById(ab==='A'?'a-done-badge':'b-done-badge').style.display='flex';
     goStep(ab==='A' ? 4 : 5);
-  }, 30);
+  } catch(e) { alert('エラーが発生しました：' + e.message); btn.disabled=false; btn.textContent = ab==='A' ? '✂️ シートAを分割してSTEP4へ →' : '✂️ シートBを分割してSTEP5へ →'; } }, 30);
 }
 
 // 透明でないピクセルの範囲を検出し、余白を詰めて最大化する
