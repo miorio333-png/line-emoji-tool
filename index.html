@@ -429,7 +429,6 @@ input[type="number"] {
         透明ピクセルを除いた実体部分を検出し、180×180pxいっぱいに拡大します（安全余白3px）
       </div>
     </div>
-    <div id="split-b-msg" style="display:none;" class="status status-ok"></div>
   </div>
   <div class="nav-buttons">
     <button class="btn btn-gray" onclick="goStep(3)">← STEP 3</button>
@@ -913,9 +912,8 @@ function splitSheet(ab) {
     }
     if (ab==='A') cellsA=result; else cellsB=result;
     tabIdx = -1;
-    btn.disabled=false; btn.textContent=`✂️ シート${ab}を分割する`;
-    const msg=document.getElementById(ab==='A'?'split-a-msg':'split-b-msg');
-    msg.style.display='block'; msg.textContent=`✅ シート${ab}を ${result.length}枚 に分割しました`;
+    btn.disabled=false;
+    btn.textContent = ab==='A' ? '✂️ シートAを分割してSTEP4へ →' : '✂️ シートBを分割してSTEP5へ →';
     document.getElementById(ab==='A'?'a-done-badge':'b-done-badge').style.display='flex';
     goStep(ab==='A' ? 4 : 5);
   }, 30);
